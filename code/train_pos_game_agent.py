@@ -35,14 +35,18 @@ parser.add_argument('--lr', type = float, required = True)
 parser.add_argument('--num_epoch', type = int, required = True)
 parser.add_argument('--case', type = int, required = True)
 parser.add_argument('--min_reward_action', type = int, required = True)
-parser.add_argument('--reward_order', type = int, required = True)
+# parser.add_argument('--reward_order', type = int, required = True)
+parser.add_argument('--reward_alpha', type = float, required = True)
+parser.add_argument('--reward_beta', type = float, required = True)
 
 args = parser.parse_args()
 batch_size = args.batch_size
 num_epoch = args.num_epoch
 case = args.case
 
-synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+# synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
 kwargs = {
     'model_name' : 'TargetPolicy',
     'task' : 'position-game',
@@ -176,8 +180,12 @@ def train_step(data, model):
 - train_targets : next_state를 정의하는 action 데이터 (num_cases, per_case_sample_size, epi_len, 1)
 - train_rewards : next_state에서 얻게되는 reward 데이터 (num_cases, per_case_sample_size, epi_len, 1)
 '''
-synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
-reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+# synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
+# reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
 reward_dist = np.concatenate(np.array(reward_dist))
 train_inputs, train_targets, train_rewards = get_synthetic_triplets_by_case(synthetic_data, reward_dist, kwargs)
 sample_size = train_inputs[0].shape[0]
@@ -277,7 +285,9 @@ for epoch in range(kwargs['num_epoch']):
     # 가중치 저장 조건
     # 현 정확도가 가장 높았던 이전 정확도보다 개선됐을 경우에만 가중치 저장
     weight_dir = SAVE_PATH_WEIGHT + '/' + batch_size_path + lr_path + epoch_path + case_path
-    weight_dir = weight_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+    # weight_dir = weight_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+    weight_dir = weight_dir + '_mra={}_alpha={}_beta={}'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
     createFolder(weight_dir)
     TPAgent.save_weights(weight_dir + '/weights.ckpt')
 
@@ -287,7 +297,9 @@ for epoch in range(kwargs['num_epoch']):
     train_acc_history += [train_mean_acc]
     loss_acc_history_pd = pd.DataFrame(zip(train_loss_history, train_acc_history), columns = ['train_loss', 'train_acc'])
     file_dir = SAVE_PATH_RESULT + '/' + batch_size_path + lr_path + epoch_path + case_path
-    file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+    # file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+    file_dir = file_dir + '_mra={}_alpha={}_beta={}'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
     createFolder(file_dir)
     file_name = '/loss_acc_history.csv'
     loss_acc_history_pd.to_csv(file_dir + file_name, index_label = 'epoch')

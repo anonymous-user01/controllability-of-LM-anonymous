@@ -28,7 +28,10 @@ parser.add_argument('--mode', type = str, required = True)
 # mode == 'gen'/''test' 둘다 필요
 parser.add_argument('--num_epi', type = int, required = True)
 parser.add_argument('--min_reward_action', type = int, required = True)
-parser.add_argument('--reward_order', type = int, required = True)
+# parser.add_argument('--reward_order', type = int, required = True)
+parser.add_argument('--reward_alpha', type = float, required = True)
+parser.add_argument('--reward_beta', type = float, required = True)
+
 
 # mode == 'test' 일 때만 필요
 parser.add_argument('--batch_size', type = int, required = False)
@@ -128,17 +131,19 @@ parent_dir = str(Path(os.getcwd()).parents[0])
 num_epi = args.num_epi
 epi_len = 10
 sample_size = num_epi * epi_len
-reward_dist = get_reward_dist(min_action=args.min_reward_action, order=args.reward_order)
+# reward_dist = get_reward_dist(min_action=args.min_reward_action, order=args.reward_order)
+reward_dist = get_reward_dist(min_action=args.min_reward_action, a=args.reward_alpha, b=args.reward_beta)
 
 supports = np.arange(1, 11, 1)
-# nrows=3
-# ncols=3
 nrows=3
 ncols=2
+
+# mode=gen 버전
 case_list = np.array(range(nrows*ncols)).reshape(ncols, nrows).T
 num_cases = len(np.concatenate(case_list))
 bp_mu_list = np.array([3, 5, 7])
-bp_sigma_list = np.array([0.5, 1.0, 3.0])
+bp_sigma_list = np.array([0.5, 1.0, 5.0])
+
 all_samples = np.zeros((1, 0)).astype('int32')
 
 
@@ -174,6 +179,8 @@ if args.mode == 'gen':
                 ax1[i][j].set_xticks(ticks=supports, labels=supports)
                 # ax1[i][j].set_yticks(ticks=np.arange(0, sample_size, num_epi), labels=[str(i/sample_size) for i in np.arange(0, sample_size, num_epi)])
                 ax1[i][j].set_yticks(ticks=np.arange(0, sample_size + 2 * num_epi, 2 * num_epi), labels=np.round(np.arange(0, 1.2, 0.2), 1))
+                # ax1[i][j].set_yticks(ticks=np.arange(0, sample_size * 0.8, 2 * num_epi), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
+
                 ax1[i][j].set_xlabel('action')
                 ax1[i][j].set_ylabel('likelihood')
                 ax1[i][j].set_title('Case {} (different $\mu$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(case_list[i][j], bp_mu_list[i], 0.5), fontsize=16)
@@ -213,6 +220,8 @@ if args.mode == 'gen':
                 ax1[i][j].set_xticks(ticks=supports, labels=supports)
                 # ax1[i][j].set_yticks(ticks=np.arange(0, sample_size, num_epi), labels=[str(i/sample_size) for i in np.arange(0, sample_size, num_epi)])
                 ax1[i][j].set_yticks(ticks=np.arange(0, sample_size + 2 * num_epi, 2 * num_epi), labels=np.round(np.arange(0, 1.2, 0.2), 1))
+                # ax1[i][j].set_yticks(ticks=np.arange(0, sample_size * 0.8, 2 * num_epi), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
+
                 ax1[i][j].set_xlabel('action')
                 ax1[i][j].set_ylabel('likelihood')
                 ax1[i][j].set_title('Case {} (different $\sigma$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(case_list[i][j], 5, bp_sigma_list[i]), fontsize=16)
@@ -392,16 +401,34 @@ if args.mode == 'gen':
     case_labels = np.repeat(np.arange(num_cases), sample_size)
     all_data = np.concatenate([all_samples[:, np.newaxis], case_labels[:, np.newaxis]], axis=-1)
     all_data_pd = pd.DataFrame(all_data, columns=["bp_sampled_actions", "case"])
-    all_data_pd.to_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order))
+    # all_data_pd.to_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order))
+    all_data_pd.to_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta))
+
     train_reward_dist = pd.DataFrame(reward_dist, columns=["reward_per_action"])
     train_reward_dist.index = train_reward_dist.index+1
-    train_reward_dist.to_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order))
+    # train_reward_dist.to_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order))
+    train_reward_dist.to_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta))
 
 # %%
 
 '''
 test 모드
 '''
+# mode=test용 버전
+# 1/2차 모멘트 컬럼 위치 바꾸고, 1차 모멘트에 한해서 로우 위치 역소팅 한 버전
+case_list = np.array(range(nrows*ncols))
+case_list_vector = np.append(case_list[3:], np.sort(case_list[:3])[::-1])
+case_list = case_list_vector.reshape(ncols, nrows).T
+num_cases = len(np.concatenate(case_list))
+
+bp_mu_list = np.array([3, 5, 7])
+bp_sigma_list = np.array([0.5, 1.0, 5.0])
+X, Y = np.meshgrid(bp_mu_list, bp_sigma_list)
+A = np.append(X[0], X.T[1])[:, np.newaxis]
+B = np.append(Y[0], Y.T[1])[:, np.newaxis]
+bp_mu_sigma_list = np.concatenate([A, B], axis = 1)
+bp_mu_sigma_list_sort = bp_mu_sigma_list[case_list_vector].reshape((ncols, nrows, 2))
+
 if args.mode == 'test':
 
     batch_size = args.batch_size
@@ -411,7 +438,8 @@ if args.mode == 'test':
     '''
     get 데이터 불러오기
     '''
-    synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)    
+    # synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)    
+    synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)    
 
     '''
     플롯팅
@@ -438,9 +466,13 @@ if args.mode == 'test':
             test 데이터 불러오기 및 case 별로 분리하기
             '''
             # file_dir = str(batch_size) + '_' + str(lr) + '_' + str(num_epoch) + '_' + str(target_case)
-            file_dir = '{}_{}_{}_{}_mra={}_ro={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, args.reward_order)
+            # file_dir = '{}_{}_{}_{}_mra={}_ro={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, args.reward_order)
+            file_dir = '{}_{}_{}_{}_mra={}_alpha={}_beta={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, args.reward_alpha, args.reward_beta)
+
             print('file_dir :', file_dir)
-            all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+            # all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+            all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
             tp_actions = all_test_action_dist_pd.columns
             tp_actions = np.array(tp_actions).astype('int32')
             tp_counts = all_test_action_dist_pd.iloc[0]
@@ -450,7 +482,9 @@ if args.mode == 'test':
             test의 보상 결과 데이터 불러오기
             '''
             print('file_dir :', file_dir)
-            all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+            # all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+            all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
             mean_test_reward = tf.reduce_mean(all_test_reward_dist_pd)
 
             '''
@@ -460,13 +494,14 @@ if args.mode == 'test':
             if j == 0:
 
                 '''
-                1차 모멘트 분석
+                1차 모멘트 (= 평균) 분석
                 '''
 
                 # reward 분포 플로팅
                 reward_barplot = ax1[i][j].bar(supports, reward_dist, align='center', width = .7, alpha=0.5, label='reward ($\geq 6$)', color='red')
                 ax1[i][j].set_xticks(ticks=supports, labels=supports, fontsize=16)
-                ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                # ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 0.8, 0.2), 1), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
                 ax1[i][j].set_ylabel('reward', rotation=270, labelpad=15, fontsize=16)
 
                 # behavior-policy 분포 플로팅
@@ -476,9 +511,11 @@ if args.mode == 'test':
                 ax2.set_ylabel('likelihood', fontsize=16)
 
                 # target policy 분포 플로팅
-                tp_action_barplot = ax2.bar(tp_actions, tp_counts, align='center', width = .3, label='target policy ($\\theta$)', color='green', alpha = .7, edgecolor='black')
+                tp_action_barplot = ax2.bar(tp_actions, tp_counts, align='center', width = .3, label='target policy ($\\pi$)', color='green', alpha = .7, edgecolor='black')
                 # ax2.set_yticks(ticks=np.arange(0, sample_size, num_epi), labels=[str(i/sample_size) for i in np.arange(0, sample_size, num_epi)], fontsize=16)
                 ax2.set_yticks(ticks=np.arange(0, sample_size + 2 * num_epi, 2 * num_epi), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                # ax2.set_yticks(ticks=np.arange(0, sample_size * 0.8, 2 * num_epi), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
+
                 for idx, tp_bar in enumerate(tp_action_barplot):
                     tp_action_barplot[idx].set_hatch("/" * 5)
 
@@ -487,8 +524,8 @@ if args.mode == 'test':
                 if i == 0:
                     label1 = bp_action_barplot.get_label()
                     label2 = reward_barplot.get_label()
-                    # ax2.set_title('Case {} (ill-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
+                    # ax2.set_title('Case {} (ill-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(0, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
                     ax2.legend([bp_action_barplot, reward_barplot], [label1, label2], loc = 'upper left', fontsize=16)
 
                     # 평균 보상
@@ -496,8 +533,8 @@ if args.mode == 'test':
 
                 # elif j == 1:
                 elif i == 1:
-                    # ax2.set_title('Case {} (partially well-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
+                    # ax2.set_title('Case {} (partially well-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(1, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
                     ax2.legend([tp_action_barplot], [tp_action_barplot.get_label()], loc = 'upper left', fontsize=16)
 
                     # 평균 보상
@@ -505,8 +542,8 @@ if args.mode == 'test':
 
                 # elif j == 2:
                 elif i == 2:
-                    # ax2.set_title('Case {} (well-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, bp_mu_list[i], 0.5), fontsize=18)
+                    # ax2.set_title('Case {} (well-posed $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(2, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
                     ax2.text(0.035, 0.95, "N={}".format(num_epi), ha='left', va='top', transform=ax2.transAxes, fontsize=16)
                     ax2.text(0.035, 0.80, "L={}".format(epi_len), ha='left', va='top', transform=ax2.transAxes, fontsize=16)
 
@@ -516,13 +553,14 @@ if args.mode == 'test':
             # elif i == 1:
             elif j == 1:
                 '''
-                2차 모멘트 분석
+                2차 모멘트 (= 분산) 분석
                 '''
 
                 # reward 분포 플로팅
                 reward_barplot = ax1[i][j].bar(supports, reward_dist, align='center', width = .7, alpha=0.5, label='reward ($\geq 6$)', color='red')
                 ax1[i][j].set_xticks(ticks=supports, labels=supports, fontsize=16)
-                ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                # ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                ax1[i][j].set_yticks(ticks=np.round(np.arange(0, 0.8, 0.2), 1), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
                 ax1[i][j].set_ylabel('reward', rotation=270, labelpad=15, fontsize=16)
 
                 # behavior-policy 분포 플로팅
@@ -533,21 +571,23 @@ if args.mode == 'test':
 
                 # if j == 0:
                 if i == 0:
-                    # ax2.set_title('Case {} (narrow-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
+                    # ax2.set_title('Case {} (narrow-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(3, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
                 # elif j == 1:
                 elif i == 1:
-                    # ax2.set_title('Case {} (mid-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
+                    # ax2.set_title('Case {} (mid-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(4, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
                 # elif j == 2:
                 elif i == 2:
-                    # ax2.set_title('Case {} (wide-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
-                    ax2.set_title('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, 5, bp_sigma_list[i]), fontsize=18)
+                    # ax2.set_title('Case {} (wide-ranged $\\beta$) :\n $p_\\beta \sim truncNormal(\mu={}, \sigma={})$'.format(target_case, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
+                    ax2.set_title('Case {} : $\\beta(\\tau) \\overset{{def}}{{=}} \mathcal{{N}}(\mu={}, \sigma={})$'.format(5, bp_mu_sigma_list_sort[j, i, 0], bp_mu_sigma_list_sort[j, i, 1]), fontsize=18)
 
                 # target policy 분포 플로팅
-                tp_action_barplot = ax2.bar(tp_actions, tp_counts, align='center', width = .3, label='target policy ($\\theta$)', color='green', alpha = .7, edgecolor='black')
+                tp_action_barplot = ax2.bar(tp_actions, tp_counts, align='center', width = .3, label='target policy ($\\pi$)', color='green', alpha = .7, edgecolor='black')
                 # ax2.set_yticks(ticks=np.arange(0, sample_size, num_epi), labels=[str(i/sample_size) for i in np.arange(0, sample_size, num_epi)], fontsize=16)
                 ax2.set_yticks(ticks=np.arange(0, sample_size + 2 * num_epi, 2 * num_epi), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=16)
+                # ax2.set_yticks(ticks=np.arange(0, sample_size * 0.8, 2 * num_epi), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=16)
+
                 for idx, tp_bar in enumerate(tp_action_barplot):
                     tp_action_barplot[idx].set_hatch("/" * 5)
 
@@ -682,4 +722,4 @@ if args.mode == 'test':
             #         ax2.text(0.035, 0.95, "$\\tilde{{r}}={}$".format(np.round(mean_test_reward, 2)), ha='left', va='top', transform=ax2.transAxes, fontsize=16)
 
     fig.tight_layout(pad=1.)
-    fig.savefig(parent_dir + '/figure' + file_dir + '.pdf')
+    fig.savefig(parent_dir + '/figure_test_' + file_dir + '.pdf')

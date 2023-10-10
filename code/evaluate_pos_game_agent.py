@@ -26,11 +26,16 @@ parser.add_argument('--lr', type = float, required = True)
 parser.add_argument('--num_epoch', type = int, required = True)
 parser.add_argument('--case', type = int, required = True)
 parser.add_argument('--min_reward_action', type = int, required = True)
-parser.add_argument('--reward_order', type = int, required = True)
+# parser.add_argument('--reward_order', type = int, required = True)
+parser.add_argument('--reward_alpha', type = float, required = True)
+parser.add_argument('--reward_beta', type = float, required = True)
+
 args = parser.parse_args()
 
 parent_dir = str(Path(os.getcwd()).parents[0])
-synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+# synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
 kwargs = {
     'model_name' : 'TargetPolicy',
     'batch_size' : args.batch_size,
@@ -54,8 +59,12 @@ case_path = '_' + str(case)
 '''
 데이터 로드
 '''
-synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
-reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+# synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
+# reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order), index_col=0)
+reward_dist = pd.read_csv(parent_dir + '/prep_data/position-game/train_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta), index_col=0)
+
 reward_dist = np.concatenate(np.array(reward_dist))
 train_inputs, _, _ = get_synthetic_triplets_by_case(synthetic_data, reward_dist, kwargs)
 train_inputs_of_case = train_inputs[case]
@@ -117,7 +126,9 @@ TPAgent = TargetPolicy(**TPAgent_kwargs)
 # 학습 가중치 로드
 weight_dir = parent_dir + '/weights/position-game/TargetPolicy'
 weight_dir += '/' + batch_size_path + lr_path + epoch_path + case_path
-weight_dir = weight_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+# weight_dir = weight_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+weight_dir = weight_dir + '_mra={}_alpha={}_beta={}'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
 print('TPAgent_weights_dir : ' , weight_dir)
 TPAgent.load_weights(tf.train.latest_checkpoint(weight_dir))
 
@@ -170,9 +181,13 @@ action_list = np.arange(1, 11, 1).astype('str')
 print('test_action_dist :', test_action_dist.shape)
 test_action_dist_pd = pd.DataFrame(test_action_dist, columns = action_list)
 file_dir = SAVE_PATH_RESULT + '/' + batch_size_path + lr_path + epoch_path + case_path
-file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+# file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+file_dir = file_dir + '_mra={}_alpha={}_beta={}'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
 createFolder(file_dir)
-file_name = '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order)
+# file_name = '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order)
+file_name = '/test_action_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
 test_action_dist_pd.to_csv(file_dir + file_name)
 print('test_action_dist : ', test_action_dist)
 print('\n')
@@ -180,9 +195,13 @@ print('\n')
 # test 보상결과 저장
 test_rewards_pd = pd.DataFrame(tf.squeeze(test_rewards), columns=np.arange(1, 11, 1))
 file_dir = SAVE_PATH_RESULT + '/' + batch_size_path + lr_path + epoch_path + case_path
-file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+# file_dir = file_dir + '_mra={}_ro={}'.format(args.min_reward_action, args.reward_order)
+file_dir = file_dir + '_mra={}_alpha={}_beta={}'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
 createFolder(file_dir)
-file_name = '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order)
+# file_name = '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, args.reward_order)
+file_name = '/test_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, args.reward_alpha, args.reward_beta)
+
 test_rewards_pd.to_csv(file_dir + file_name)
 
 # train 보상결과 및 행동 분포 출력

@@ -65,14 +65,29 @@ target_case = 5
 '''
 플롯팅
 '''
-fig, ax1 = plt.subplots(figsize=(12, 3), nrows=nrows, ncols=ncols, squeeze=False)
-for subplot_idx, reward_order in enumerate([1, 2, 4, 16]):
-    reward_dist = get_reward_dist(min_action=args.min_reward_action, order=reward_order)
+fig, ax1 = plt.subplots(figsize=(12, 2.5), nrows=nrows, ncols=ncols, squeeze=False)
+# for subplot_idx, reward_order in enumerate([4, 8, 12, 16]):
+
+# alpha_beta_list = [[1.0, 1.0], [5.0, 5.0], [10.0, 10.0], [15.0, 15.0]]
+alpha_beta_list = [[1.25, 0.8], [1.25, 0.6], [1.25, 0.4], [1.25, 0.2]]
+
+for subplot_idx, reward_alpha_beta in enumerate(alpha_beta_list):
+    reward_alpha = reward_alpha_beta[0]
+    reward_beta = reward_alpha_beta[1]
+
+# for subplot_idx, min_reward_action in enumerate([1, 3, 5, 7]):
+    # reward_dist = get_reward_dist(min_action=args.min_reward_action, order=reward_order)
+    reward_dist = get_reward_dist(min_action=args.min_reward_action, a=reward_alpha, b=reward_beta)
+
+    # reward_dist = get_reward_dist(min_action=min_reward_action, order=args.reward_order)
 
     '''
     gen 데이터 불러오기
     '''
-    synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    # synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, reward_alpha, reward_beta), index_col=0)
+
+    # synthetic_data = pd.read_csv(parent_dir + '/prep_data/position-game/train_samples_mra={}_ro={}.csv'.format(min_reward_action, args.reward_order), index_col=0)
 
     '''
     gen 데이터 case 별로 분리하기
@@ -83,9 +98,15 @@ for subplot_idx, reward_order in enumerate([1, 2, 4, 16]):
     '''
     test 데이터 불러오기 및 case 별로 분리하기
     '''
-    file_dir = '{}_{}_{}_{}_mra={}_ro={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, reward_order)
+    # file_dir = '{}_{}_{}_{}_mra={}_ro={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, reward_order)
+    file_dir = '{}_{}_{}_{}_mra={}_alpha={}_beta={}'.format(batch_size, lr, num_epoch, target_case, args.min_reward_action, reward_alpha, reward_beta)
+
+    # file_dir = '{}_{}_{}_{}_mra={}_ro={}'.format(batch_size, lr, num_epoch, target_case, min_reward_action, args.reward_order)
     print('file_dir :', file_dir)
-    all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    # all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, reward_alpha, reward_beta), index_col=0)
+
+    # all_test_action_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_action_dist_mra={}_ro={}.csv'.format(min_reward_action, args.reward_order), index_col=0)
     tp_actions = all_test_action_dist_pd.columns
     tp_actions = np.array(tp_actions).astype('int32')
     tp_counts = all_test_action_dist_pd.iloc[0]
@@ -95,14 +116,18 @@ for subplot_idx, reward_order in enumerate([1, 2, 4, 16]):
     test의 보상 결과 데이터 불러오기
     '''
     print('file_dir :', file_dir)
-    all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    # all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_ro={}.csv'.format(args.min_reward_action, reward_order), index_col=0)
+    all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_alpha={}_beta={}.csv'.format(args.min_reward_action, reward_alpha, reward_beta), index_col=0)
+
+    # all_test_reward_dist_pd = pd.read_csv(parent_dir + '/results/position-game/TargetPolicy/' + file_dir + '/test_reward_dist_mra={}_ro={}.csv'.format(min_reward_action, args.reward_order), index_col=0)
     mean_test_reward = tf.reduce_mean(all_test_reward_dist_pd)
 
     # reward 분포 플로팅
     reward_barplot = ax1[0][subplot_idx].bar(supports, reward_dist, align='center', width = .7, alpha=0.5, label='reward ($\geq 6$)', color='red')
     ax1[0][subplot_idx].set_xticks(ticks=supports, labels=supports, fontsize=14)
     # ax1[0][subplot_idx].set_yticks(ticks=np.round(reward_dist, 1), labels=np.round(reward_dist, 1))
-    ax1[0][subplot_idx].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=14)
+    # ax1[0][subplot_idx].set_yticks(ticks=np.round(np.arange(0, 1.2, 0.2), 1), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=14)
+    ax1[0][subplot_idx].set_yticks(ticks=np.round(np.arange(0, 0.8, 0.2), 1), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=14)
     ax1[0][subplot_idx].set_ylabel('reward', rotation=270, labelpad=15, fontsize=14)
 
     # behavior-policy 분포 플로팅
@@ -117,14 +142,22 @@ for subplot_idx, reward_order in enumerate([1, 2, 4, 16]):
         tp_action_barplot[idx].set_hatch("/" * 5)
     # ax2.set_yticks(ticks=np.arange(0, sample_size, num_epi), labels=[str(i/sample_size) for i in np.arange(0, sample_size, num_epi)])
     ax2.set_yticks(ticks=np.arange(0, sample_size + num_epi, 2 * num_epi), labels=np.round(np.arange(0, 1.2, 0.2), 1), fontsize=14)
+    # ax2.set_yticks(ticks=np.arange(0, sample_size * 0.8, 2 * num_epi), labels=np.round(np.arange(0, 0.8, 0.2), 1), fontsize=14)
 
     # 평균 보상
     ax2.text(0.035, 0.975, "$\\tilde{{r}}={}$".format(np.round(mean_test_reward, 2)), ha='left', va='top', transform=ax2.transAxes, fontsize=14)
 
+    # # 서브플롯 타이틀
+    # title_list = ['4', '8', '12', '16']
+    # ax2.set_title('Case {}:\n {}-th degree'.format(int(subplot_idx), title_list[subplot_idx]), fontsize=14)
+
     # 서브플롯 타이틀
-    title_list = ['$2^0$', '$2^1$', '$2^2$', '$2^4$']
-    title_list2 = ['linear', 'quadratic', 'quartic', '16-th']
-    ax2.set_title('Case {}:\n {}-th degree ({})'.format(int(subplot_idx), title_list[subplot_idx], title_list2[subplot_idx]), fontsize=14)
+    ax2.set_title('Case {}:\n alpha={}, beta={}'.format(int(subplot_idx), reward_alpha, reward_beta), fontsize=14)
+
+    # # 서브플롯 타이틀
+    # title_list = ['$2^2$', '$2^3$', '$2^4$', '$2^5$']
+    # title_list2 = ['linear', 'quadratic', 'quartic', '16-th']
+    # ax2.set_title('Case {}:\n {}-th degree ({})'.format(int(subplot_idx), title_list[subplot_idx], title_list2[subplot_idx]), fontsize=14)
 
 # # 수퍼 타이틀
 # fig.suptitle('Case {} : $p_\\beta \sim \mathcal{{N}}(\mu={}, \sigma={})$'.format(target_case, 5, 0.5), fontsize=16)

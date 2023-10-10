@@ -49,12 +49,12 @@ You need to **generate the position change history of behavior agent.**
 
 To  do that, running the code below:
 ```
-python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=6 --reward_order=16
+python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 ```
 - *``--mode=gen`` option indicates that 10-turn positioning game is simulated to generate the episodes, i.e., trajectories, of behavior agent.*
 - *``--num_epi=5000`` option configures the total number of simulated episodes to be 5000.*
 - *``--min_reward_action=6`` option configures the 10-turn positioning game where rewards are only collectable at positions from 6 to 10. Note that the position is defined as an integer number between 0 to 10.*
-- *``--reward_order=16`` option shapes the reward distribution to follow 16* ($= 2^4$)*-th order function.* 
+- *``--reward_alpha=alpha`` and ``--reward_beta=beta`` options determines the shape of reward distribution.* If setting ``alpha=1.25`` and ``beta=0.6``, then you can reproduce the reward distribution of Figure 1b in the paper.
 
 Since the 10-turn positioning game forces the length of episode to be 10, the total number of position changes for the behavior agent is $50000 (= 10 \times 5000)$. 
 
@@ -65,17 +65,17 @@ You need to **train a target agent according to the position change history of b
 
 To  do that, running the code below:
 ```
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=0 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=0 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=1 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=1 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=2 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=2 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=3 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=3 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=4 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=4 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 ```
 or
 ```
@@ -87,7 +87,7 @@ sh train_pos_game_agent.sh
 - *``--num_epoch=1`` option sets the number of training epoch for the target agent to be 1.*
 - *``--case=0`` option determines the simulated data of specific behavior agent to be learned by the target agent. In other words, it specifies the pre-defined combination of* $\mu$ *and* $\sigma$ *of the behavioral agent that the target agent will learn from. Since only 6 cases are considered in the paper, the 0, 1, 2, 3, 4, and 5 arguments are allowed for this option.*
 - *``--min_reward_action=6`` option specifies that the target agent will be trained on the simulated data where rewards are only collectable at positions from 6 to 10.*
-- *``--reward_order=16`` option specifies that the target agent will be trained on the simulated data where reward distribution follows 16* ($= 2^4$)*-th order function.*
+- *``--reward_alpha`` and ``--reward_beta`` options specify that the target agent will be trained on the simulated data where rewards are distributed according to Beta(alpha, beta) distribution.*
 
 Note that you can change ``CUDA_VISIBLE_DEVICES=0`` command depending on the GPU availability in your server.
 
@@ -96,17 +96,17 @@ After training, evaluate the target agent's policy by initializing its position 
 
 To  do that, running the code below:
 ```
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=0 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=0 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=1 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=1 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=2 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=2 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=3 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=3 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=4 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=4 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
-CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 
 ```
 or
@@ -119,9 +119,9 @@ Now, you need to draw the resulting plots, i.e., the action or position distribu
 
 To  do that, running the code below:
 ```
-CUDA_VISIBLE_DEVICES=0 python3 pos_game_data.py --mode=test --num_epi=5000 --batch_size=1 --lr=1e-05 --num_epoch=1 --min_reward_action=6 --reward_order=16
+CUDA_VISIBLE_DEVICES=0 python3 pos_game_data.py --mode=test --num_epi=5000 --batch_size=1 --lr=1e-05 --num_epoch=1 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 ```
-Running this code will generate a file named ``figure1_1e-05_1_5_mra=6_ro=16.pdf`` that **reproduces Figure 2(b) in our paper.**
+Running this code will generate a file named ``figure1_1e-05_1_5_mra=6_alpha=1.25_beta=0.6.pdf`` that **reproduces Figure 1b in our paper.**
 
 ### 5) Conducting additional analysis
 We have analyzed the dynamics of target agent given the behavior agent (behavior policy) is fixed while the different reward distribution was set up according to the power of 2 at $i \in [1, 10]$.
@@ -130,9 +130,37 @@ To visualize the result of analysis, running the code below:
 ```
 sh plot_additional_analysis.sh
 ```
-Running this code will generate a file named ``4col_figure1_1e-05_1_5_mra=1_ro=16.pdf`` that **reproduces Figure 3 in our paper.**
+Running this code will generate a file named ``4col_figure1_1e-05_1_5_mra=1_alpha=15.0_beta=15.0.pdf`` that **reproduces the second row of Figure 2 in our paper.**
 
-Note that $i \in [1, 10]$ sets all positions from 1 to 10 as rewarding positions. However, as the reward distribution becomes more and more skewed, that is, as the order of the reward function increases, some positions turn into zero-reward positions where the reward converges to zero.
+or 
+
+you may manipulate the reward distribution by customizing your own alpha and beta as below:
+```
+# Generate a simulated data of 10-turn positioning game.
+
+python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=1 --reward_alpha=1.0 --reward_beta=1.0
+python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=1 --reward_alpha=5.0 --reward_beta=5.0
+python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=1 --reward_alpha=10.0 --reward_beta=10.0
+python3 pos_game_data.py --mode=gen --num_epi=5000 --min_reward_action=1 --reward_alpha=15.0 --reward_beta=15.0
+
+# Train agent in different reward distributions.
+# Note that case=5 argument in the below code refers to the behavior policy at case 2 in Figure 1b of our paper.
+
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=1.0 --reward_beta=1.0
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=5.0 --reward_beta=5.0
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=10.0 --reward_beta=10.0
+CUDA_VISIBLE_DEVICES=0 python3 train_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=15.0 --reward_beta=15.0
+
+# Evaluate the trained agent starting from a random initial position.
+
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=1.0 --reward_beta=1.0
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=5.0 --reward_beta=5.0
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=10.0 --reward_beta=10.0
+CUDA_VISIBLE_DEVICES=0 python3 evaluate_pos_game_agent.py --batch_size=1 --lr=1e-05 --num_epoch=1 --case=5 --min_reward_action=1 --reward_alpha=15.0 --reward_beta=15.0
+
+# Plot the result of 10-turn positioning game.
+CUDA_VISIBLE_DEVICES=0 python3 plot_additional_analysis.py --num_epi=5000 --batch_size=1 --lr=1e-05 --num_epoch=1 --min_reward_action=1
+```
 
 <br/>
 <br/>
@@ -141,7 +169,7 @@ Note that $i \in [1, 10]$ sets all positions from 1 to 10 as rewarding positions
 You can *reproduce the benchmark experiments* described in the paper by running the below codes:
 
 ## 1) Preparing datasets
-For benchmark experiments, first download the ``datasets.tar.gz``, ``pretrained_weights.tar.gz``, and ``weights.tar.gz`` in our [Google Drive](https://drive.google.com/drive/folders/1lj3I6ViRGXjTlJv3R6RPT1mJ1d1zbYCq?usp=drive_link). After then, store and unzip them at the corresponding folders named ``prep_data``, ``pretrained_weights`` and ``weights``, respectively, as below:
+For benchmark experiments, first download the ``datasets.tar.gz``, ``pretrained_weights.tar.gz``, and ``weights.tar.gz`` in our [Google Drive](https://drive.google.com/drive/folders/1qOWjtDq8Ry2QRdKZvyGzSetFF-lggz7M?usp=drive_link). After then, store and unzip them at the corresponding folders named ``prep_data``, ``pretrained_weights`` and ``weights``, respectively, as below:
 ```
 # After store the zipped files downloaded from Google drive, then unzip them into the corresponding folders.
 
@@ -187,9 +215,11 @@ After running the code, check out the ``results`` directory. Then, you can see t
 - Since the ``weights.tar.gz`` file contains only the weights of limited hyperparameter settings (as we mentioned in *preparing datasets* step), ``sh evaluate_LLM.sh`` will **reproduce the Table 4 only for those limited settings.**
 
 If you would like to put some customized prefixes (i.e., prompts) as inputs to our model, then open ``evaluate_LLM.sh`` file and enter your own prefixes in the ``--test_prefix`` argument as below
+
 ![Alt text](image-4.png)
 
 Also, if you want to see the generated results without reward dropout, then revise ``--dropout=quantile`` to ``--dropout=None``, and ``--dropout_rate=0.95`` to ``--dropout_rate=0.0`` arguments in ``evaluate_LLM.sh`` file as below
+
 ![Alt text](image-5.png)
 
 ## 4) Total results of benchmark experiments
