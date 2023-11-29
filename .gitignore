@@ -19,6 +19,10 @@ figure1.pdf
 !code/finetune_BERT.py
 !code/plot_train_reward_all.py
 
+!code/plot_train_reward_comparison_by_model.py
+!code/plot_train_reward_comparison_by_model_all.py
+!code/plot_train_reward_comparison_with_init_model.py
+
 # /code 디렉토리의 무시할 파일들
 code/pos_game_bootstrap.py
 code/reward_LLM.py
@@ -43,6 +47,16 @@ code/*.sh
 !code/evaluate_pos_game_agent.sh
 !code/plot_additional_analysis.sh
 !code/evaluate_LLM.sh
+
+!code/rl_stochastic_quantile_gpt2_large*.sh
+!code/rl_stochastic_quantile_gpt2_small_init_weight*.sh
+!code/rl_stochastic_quantile_opt*.sh
+!code/rl_stochastic_quantile_xglm*.sh
+
+!code/plot_train_reward_comparison_by_model.sh
+!code/plot_train_reward_comparison_by_model_all.sh
+!code/plot_train_reward_comparison_with_init_model.sh
+
 # ---------------------------------------------------------------------------- #
 
 # 2-1) data 폴더의 파일들 무시

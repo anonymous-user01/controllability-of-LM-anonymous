@@ -1,5 +1,5 @@
 # README.md
-This repository provides the code, data, and results of the paper titled *"Analyzing the Controllability of Language Models and Improving the Control Performance with Reward Dropout."*
+This repository provides the code, data, and results of the paper titled *"Reward Dropout Improves Control: Bi-objective Perpspective on Reinforced LM."*
 
 <br/>
 
@@ -41,8 +41,98 @@ conda install -c huggingface transformers=4.28.1 -y
 <br/>
 <br/>
 
-# 10-turn positioning game
-You can *reproduce the 10-turn positioning game* described in the paper by running the below codes:
+# Benchmark Experiments
+You can *reproduce the benchmark experiments* described in the paper by running the below codes:
+
+## 1) Preparing datasets
+For benchmark experiments, first download the ``datasets.tar.gz``, ``pretrained_weights.tar.gz``, and ``weights.tar.gz`` in our [Google Drive](https://drive.google.com/drive/folders/1qOWjtDq8Ry2QRdKZvyGzSetFF-lggz7M?usp=drive_link). After then, store and unzip them at the corresponding folders named ``prep_data``, ``pretrained_weights`` and ``weights``, respectively, as below:
+```
+# After store the zipped files downloaded from Google drive, then unzip them into the corresponding folders.
+
+# unzip datasets.tar.gz into prep_data folder.
+cd ./prep_data              # move to prep_data directory.
+tar -zxvf datasets.tar.gz   # unzip datasets.tar.gz file.
+
+# unzip pretrained_weights.tar.gz into pretrained_weights folder.
+cd ./pretrained_weights                 # move to pretrained_weights directory.
+tar -zxvf pretrained_weights.tar.gz     # unzip pretrained_weights.tar.gz file.
+
+# unzip weights.tar.gz into weights folder.
+cd ./weights                    # move to weights directory.
+tar -zxvf weights.tar.gz        # unzip datasets.tar.gz file.
+```
+
+For Google Drive capacity reasons, we upload ``weights.tar.gz`` that contains only the weights trained by the hyperparameter settings below:
+- dataset : *sentiment*, *topic*, *emtion*
+- decoding : *None*, *stochastic*
+- dropout : *quantile*
+- dropout rate : *0.95*
+
+It will take some time to download, save and upzip ``weights.tar.gz`` to the weights folder.
+
+Note that we provide ``pretrained_weights.tar.gz`` as zipped file for your convenience, but you can download it directly from Huggingface:
+```
+# import GPT2 tokenizer.
+gpt2_tokenizer = AutoTokenizer.from_pretrained("gpt2",
+                                                bos_token=BOS, eos_token=EOS, unk_token='<unk>', pad_token=PAD, mask_token = MASK, sep_token = SEP,
+                                                padding="max_length", truncation=True, padding_side='right')
+
+# import GPT2 model.
+gpt2_model = TFAutoModelForCausalLM.from_pretrained("gpt2")
+```
+
+## 2) Running our models
+Completing preparing datasets, running the below code to reproduce the results of benchmark expriments. **This code reproduces Table 4 in the appendix of our paper.**
+```
+sh evaluate_LLM.sh
+```
+After running the code, check out the ``results`` directory. Then, you can see that sub-directories named by dataset-label pair (e.g., ``emotion-1``) were created, and there is ``gen_samples.txt`` file within each sub-directory. This text file contains the generated results.
+
+- Since the ``weights.tar.gz`` file contains only the weights of limited hyperparameter settings (as we mentioned in *preparing datasets* step), ``sh evaluate_LLM.sh`` will **reproduce the Table 4 only for those limited settings.**
+
+If you would like to put some customized prefixes (i.e., prompts) as inputs to our model, then open ``evaluate_LLM.sh`` file and enter your own prefixes in the ``--test_prefix`` argument as below
+
+![Alt text](image-4.png)
+
+Also, if you want to see the generated results without reward dropout, then revise ``--dropout=quantile`` to ``--dropout=None``, and ``--dropout_rate=0.95`` to ``--dropout_rate=0.0`` arguments in ``evaluate_LLM.sh`` file as below
+
+![Alt text](image-5.png)
+
+## 4) Total results of benchmark experiments
+Under ``results`` directory, you can find ``final_result_table.csv`` file. It is a file that aggregates all the results of our benchmark experiments. **Table 1 in our paper was written based on this file.**
+
+## 5) Human evaluation result
+Under ``results`` directory, you can find ``real_fake_total_df.csv`` and ``final_result_real_label_total_df.csv`` files. They are the files that contain the result of human evaluation. **Figure 10 in the Appendix of our paper was plotted based on those files.** 
+
+<br/>
+<br/>
+
+# Non-pretrained target LM vs. Pretrained target LM
+Running the code below will reproduce Figure 1 (a) w/o initializing $\pi_{\theta}$ to $\beta_{\bar{{\theta}}}$.
+```
+python3 plot_train_reward_comparison_with_init_model_all.py --plot_model=gpt2_small_init_weight=uniform
+```
+
+
+Similarlly, running the code below ill reproduce Figure 1 (b) w/ initializing $\pi_{\theta}$ to $\beta_{\bar{{\theta}}}$.
+
+```
+python3 plot_train_reward_comparison_with_init_model_all.py --plot_model=gpt2_small
+```
+
+<br/>
+
+# Performance Comparison across different (pretrained) LLMs
+Running the code below will reproduce Figure 3 (a) and (b).
+```
+sh plot_train_reward_comparison_by_modell_all.sh
+```
+
+<br/>
+<br/>
+
+# Additional Experiments: 10-turn positioning game
+You can *reproduce the 10-turn positioning game* described in the Appendix by running the below codes:
 
 ### 1) Generating the simulated data
 You need to **generate the position change history of behavior agent.** 
@@ -121,7 +211,7 @@ To  do that, running the code below:
 ```
 CUDA_VISIBLE_DEVICES=0 python3 pos_game_data.py --mode=test --num_epi=5000 --batch_size=1 --lr=1e-05 --num_epoch=1 --min_reward_action=6 --reward_alpha=1.25 --reward_beta=0.6
 ```
-Running this code will generate a file named ``figure1_1e-05_1_5_mra=6_alpha=1.25_beta=0.6.pdf`` that **reproduces Figure 1b in our paper.**
+Running this code will generate a file named ``figure1_1e-05_1_5_mra=6_alpha=1.25_beta=0.6.pdf`` that **reproduces Figure 11b in our paper.**
 
 ### 5) Conducting additional analysis
 We have analyzed the dynamics of target agent given the behavior agent (behavior policy) is fixed while the different reward distribution was set up according to the power of 2 at $i \in [1, 10]$.
@@ -130,7 +220,7 @@ To visualize the result of analysis, running the code below:
 ```
 sh plot_additional_analysis.sh
 ```
-Running this code will generate a file named ``4col_figure1_1e-05_1_5_mra=1_alpha=15.0_beta=15.0.pdf`` that **reproduces the second row of Figure 2 in our paper.**
+Running this code will generate a file named ``4col_figure1_1e-05_1_5_mra=1_alpha=15.0_beta=15.0.pdf`` that **reproduces the second row of Figure 12 in our paper.**
 
 or 
 
@@ -164,66 +254,3 @@ CUDA_VISIBLE_DEVICES=0 python3 plot_additional_analysis.py --num_epi=5000 --batc
 
 <br/>
 <br/>
-
-# Benchmark Experiments
-You can *reproduce the benchmark experiments* described in the paper by running the below codes:
-
-## 1) Preparing datasets
-For benchmark experiments, first download the ``datasets.tar.gz``, ``pretrained_weights.tar.gz``, and ``weights.tar.gz`` in our [Google Drive](https://drive.google.com/drive/folders/1qOWjtDq8Ry2QRdKZvyGzSetFF-lggz7M?usp=drive_link). After then, store and unzip them at the corresponding folders named ``prep_data``, ``pretrained_weights`` and ``weights``, respectively, as below:
-```
-# After store the zipped files downloaded from Google drive, then unzip them into the corresponding folders.
-
-# unzip datasets.tar.gz into prep_data folder.
-cd ./prep_data              # move to prep_data directory.
-tar -zxvf datasets.tar.gz   # unzip datasets.tar.gz file.
-
-# unzip pretrained_weights.tar.gz into pretrained_weights folder.
-cd ./pretrained_weights                 # move to pretrained_weights directory.
-tar -zxvf pretrained_weights.tar.gz     # unzip pretrained_weights.tar.gz file.
-
-# unzip weights.tar.gz into weights folder.
-cd ./weights                    # move to weights directory.
-tar -zxvf weights.tar.gz        # unzip datasets.tar.gz file.
-```
-
-For Google Drive capacity reasons, we upload ``weights.tar.gz`` that contains only the weights trained by the hyperparameter settings below:
-- dataset : *sentiment*, *topic*, *emtion*
-- decoding : *None*, *stochastic*
-- dropout : *quantile*
-- dropout rate : *0.95*
-
-It will take some time to download, save and upzip ``weights.tar.gz`` to the weights folder.
-
-Note that we provide ``pretrained_weights.tar.gz`` as zipped file for your convenience, but you can download it directly from Huggingface:
-```
-# import GPT2 tokenizer.
-gpt2_tokenizer = AutoTokenizer.from_pretrained("gpt2",
-                                                bos_token=BOS, eos_token=EOS, unk_token='<unk>', pad_token=PAD, mask_token = MASK, sep_token = SEP,
-                                                padding="max_length", truncation=True, padding_side='right')
-
-# import GPT2 model.
-gpt2_model = TFAutoModelForCausalLM.from_pretrained("gpt2")
-```
-
-## 2) Running our models
-Completing preparing datasets, running the below code to reproduce the results of benchmark expriments. **This code reproduces Table 4 in the appendix of our paper.**
-```
-sh evaluate_LLM.sh
-```
-After running the code, check out the ``results`` directory. Then, you can see that sub-directories named by dataset-label pair (e.g., ``emotion-1``) were created, and there is ``gen_samples.txt`` file within each sub-directory. This text file contains the generated results.
-
-- Since the ``weights.tar.gz`` file contains only the weights of limited hyperparameter settings (as we mentioned in *preparing datasets* step), ``sh evaluate_LLM.sh`` will **reproduce the Table 4 only for those limited settings.**
-
-If you would like to put some customized prefixes (i.e., prompts) as inputs to our model, then open ``evaluate_LLM.sh`` file and enter your own prefixes in the ``--test_prefix`` argument as below
-
-![Alt text](image-4.png)
-
-Also, if you want to see the generated results without reward dropout, then revise ``--dropout=quantile`` to ``--dropout=None``, and ``--dropout_rate=0.95`` to ``--dropout_rate=0.0`` arguments in ``evaluate_LLM.sh`` file as below
-
-![Alt text](image-5.png)
-
-## 4) Total results of benchmark experiments
-Under ``results`` directory, you can find ``final_result_table.csv`` file. It is a file that aggregates all the results of our benchmark experiments. **Table 1 in our paper was written based on this file.**
-
-## 5) Human evaluation result
-Under ``results`` directory, you can find ``real_fake_total_df.csv`` and ``final_result_real_label_total_df.csv`` files. They are the files that contain the result of human evaluation. **Figure 10 in the appendix of our paper was plotted based on those files.** 
